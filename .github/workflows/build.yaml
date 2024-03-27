@@ -31,4 +31,23 @@ jobs:
       run: dotnet build -c Release --no-restore
 
     - name: Test
-      run: dotnet test -c Release
+      run: dotnet test -c Release --no-build --logger:junit --collect:"XPlat Code Coverage" --results-directory ./test-results --settings coverlet.runsettings
+
+    - name: Publish Test Results
+      uses: phoenix-actions/test-reporting@v12
+      id: test-report
+      if: success() || failure()
+      with:
+        name: Tests Results
+        path: ./test-results/*.xml
+        reporter: jest-junit
+
+    - name: Publish Coberage Results
+      uses: 5monkeys/cobertura-action@v13
+      with:
+        path: ./test-results/**/coverage.*.xml
+        minimum_coverage: 0
+        show_line: true
+        show_branch: true
+        show_class_names: true
+        report_name: Coverage
