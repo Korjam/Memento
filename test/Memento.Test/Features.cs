@@ -1,4 +1,5 @@
-﻿using Memento.Events;
+using FluentAssertions;
+using Memento.Events;
 using Memento.Test.Stubs;
 
 namespace Memento.Test;
@@ -21,7 +22,7 @@ public class Features : IDisposable
     public void Should_initialize_correctly()
     {
         UndoCount(0).RedoCount(0);
-        Assert.True(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeTrue();
     }
 
     [Fact]
@@ -36,13 +37,13 @@ public class Features : IDisposable
         for (int i = 9; i >= 0; i--)
         {
             await m.Undo();
-            Assert.Equal(i, c.Radius);
+            c.Radius.Should().Be(i);
             UndoCount(i).RedoCount(9 - i + 1);
         }
         for (int i = 0; i < 10; i++)
         {
             await m.Redo();
-            Assert.Equal(i + 1, c.Radius);
+            c.Radius.Should().Be(i + 1);
             UndoCount(i + 1).RedoCount(9 - i);
         }
     }
@@ -54,7 +55,7 @@ public class Features : IDisposable
         UndoCount(0);
         m.PropertyChange(c, () => c.Radius, 10);
         await m.Undo();
-        Assert.Equal(10, c.Radius);
+        c.Radius.Should().Be(10);
     }
 
     [Fact]
@@ -69,13 +70,13 @@ public class Features : IDisposable
         for (int i = 9; i >= 0; i--)
         {
             await m.Undo();
-            Assert.Equal(new Point(i, i), c.Center);
+            c.Center.Should().Be(new Point(i, i));
             UndoCount(i).RedoCount(9 - i + 1);
         }
         for (int i = 0; i < 10; i++)
         {
             await m.Redo();
-            Assert.Equal(new Point(i + 1, i + 1), c.Center);
+            c.Center.Should().Be(new Point(i + 1, i + 1));
             UndoCount(i + 1).RedoCount(9 - i);
         }
     }
@@ -87,11 +88,11 @@ public class Features : IDisposable
         UndoCount(2);
 
         await m.Undo();
-        Assert.Equal(new Point(0, 0), c.Center);
+        c.Center.Should().Be(new Point(0, 0));
         UndoCount(1);
 
         await m.Undo();
-        Assert.Equal(0, c.Radius);
+        c.Radius.Should().Be(0);
         UndoCount(0);
     }
 
@@ -125,19 +126,19 @@ public class Features : IDisposable
         UndoCount(1).RedoCount(0);
 
         await m.Undo();
-        Assert.Equal(0, c.Radius);
+        c.Radius.Should().Be(0);
         UndoCount(0).RedoCount(1);
 
         await m.Redo();
-        Assert.Equal(10, c.Radius);
+        c.Radius.Should().Be(10);
         UndoCount(1).RedoCount(0);
 
         await m.Undo();
-        Assert.Equal(0, c.Radius);
+        c.Radius.Should().Be(0);
         UndoCount(0).RedoCount(1);
 
         await m.Redo();
-        Assert.Equal(10, c.Radius);
+        c.Radius.Should().Be(10);
         UndoCount(1).RedoCount(0);
     }
 
@@ -163,46 +164,49 @@ public class Features : IDisposable
         await m.Undo();
         foreach (Circle circle in circles)
         {
-            Assert.Equal(0, circle.Radius);
-            Assert.Equal(new Point(0, 0), circle.Center);
+            circle.Radius.Should().Be(0);
+            circle.Center.Should().Be(new Point(0, 0));
         }
         RedoCount(1);
 
         await m.Redo();
         foreach (Circle circle in circles)
         {
-            Assert.Equal(5, circle.Radius);
-            Assert.Equal(new Point(5, 5), circle.Center);
+            circle.Radius.Should().Be(5);
+            circle.Center.Should().Be(new Point(5, 5));
         }
     }
 
     [Fact]
     public void Should_throw_if_nesting_batches()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        var action = () =>
         {
             m.Batch(() => m.Batch(() => new Circle() { Radius = 5 }));
-        });
+        };
+        action.Should().ThrowExactly<InvalidOperationException>();
     }
 
     [Fact]
     public void Should_throw_if_nesting_batches_via_explicit_calls()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        var action = () =>
         {
             m.BeginBatch();
             m.BeginBatch();
             m.EndBatch();
-        });
+        };
+        action.Should().ThrowExactly<InvalidOperationException>();
     }
 
     [Fact]
     public void Should_throw_if_end_batch_without_starting_one()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        var action = () =>
         {
             m.EndBatch();
-        });
+        };
+        action.Should().ThrowExactly<InvalidOperationException>();
     }
 
     [Fact]
@@ -230,26 +234,26 @@ public class Features : IDisposable
     [Fact]
     public void Should_not_track_during_a_none_tracking_execution()
     {
-        Assert.True(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeTrue();
         m.ExecuteNoTrack(() =>
         {
-            Assert.False(m.IsTrackingEnabled);
+            m.IsTrackingEnabled.Should().BeFalse();
             new Circle { Radius = 5, Center = new Point(5, 5) };
         });
-        Assert.True(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeTrue();
         UndoCount(0);
     }
 
     [Fact]
     public void Should_allow_nested_disabling_tracking()
     {
-        Assert.True(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeTrue();
         m.ExecuteNoTrack(() =>
         {
             new Circle { Radius = 5, Center = new Point(5, 5) };
             m.ExecuteNoTrack(() => { new Circle { Radius = 5, Center = new Point(5, 5) }; });
         });
-        Assert.True(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeTrue();
         UndoCount(0);
     }
 
@@ -261,9 +265,9 @@ public class Features : IDisposable
         {
             m.IsTrackingEnabled = true;
             m.ExecuteNoTrack(() => { });
-            Assert.True(m.IsTrackingEnabled);
+            m.IsTrackingEnabled.Should().BeTrue();
         });
-        Assert.False(m.IsTrackingEnabled);
+        m.IsTrackingEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -289,10 +293,10 @@ public class Features : IDisposable
         UndoCount(1);
 
         await m.Undo();
-        Assert.Empty(screen.Shapes);
+        screen.Shapes.Should().BeEmpty();
 
         await m.Redo();
-        Assert.Same(circle, screen.Shapes[0]);
+        screen.Shapes.Should().ContainSingle().And.Contain(circle);
     }
 
     [Fact]
@@ -307,10 +311,10 @@ public class Features : IDisposable
         UndoCount(1);
 
         await m.Undo();
-        Assert.Same(circle, screen.Shapes[0]);
+        screen.Shapes.Should().ContainSingle().And.Contain(circle);
 
         await m.Redo();
-        Assert.Empty(screen.Shapes);
+        screen.Shapes.Should().BeEmpty();
     }
 
     [Fact]
@@ -323,37 +327,36 @@ public class Features : IDisposable
         m.Reset();
 
         screen.MoveToFront(1);
-        Assert.Same(circle2, screen.Shapes[0]);
-        Assert.Same(circle1, screen.Shapes[1]);
+        screen.Shapes.Should().ContainInOrder(circle2, circle1);
 
         await m.Undo();
-        Assert.Same(circle1, screen.Shapes[0]);
-        Assert.Same(circle2, screen.Shapes[1]);
+        screen.Shapes.Should().ContainInOrder(circle1, circle2);
 
         await m.Redo();
-        Assert.Same(circle2, screen.Shapes[0]);
-        Assert.Same(circle1, screen.Shapes[1]);
+        screen.Shapes.Should().ContainInOrder(circle2, circle1);
     }
 
     [Fact]
     public void Should_throw_when_removing_non_existent_element()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        var action = () =>
         {
             var screen = new Screen();
             screen.Remove(new Circle());
-        });
+        };
+        action.Should().ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
     public void Should_throw_when_changing_position_of_non_existent_element()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        var action = () =>
         {
             var screen = new Screen();
             screen.Add(new Circle());
             m.ElementIndexChange(screen.Shapes, new Circle());
-        });
+        };
+        action.Should().ThrowExactly<ArgumentOutOfRangeException>();
     }
 
     [Fact]
@@ -368,11 +371,11 @@ public class Features : IDisposable
             screen.MoveToFront(1);
             screen.Remove(circle);
         });
-        Assert.Single(screen.Shapes);
+        screen.Shapes.Should().ContainSingle();
         UndoCount(1);
 
         await m.Undo();
-        Assert.Empty(screen.Shapes);
+        screen.Shapes.Should().BeEmpty();
     }
 
     [Fact]
@@ -392,11 +395,11 @@ public class Features : IDisposable
         {
             m.EndBatch();
         }
-        Assert.Single(screen.Shapes);
+        screen.Shapes.Should().ContainSingle();
         UndoCount(1);
 
         await m.Undo();
-        Assert.Empty(screen.Shapes);
+        screen.Shapes.Should().BeEmpty();
     }
 
     [Fact]
@@ -406,30 +409,30 @@ public class Features : IDisposable
         m.Changed += (_, args) => count++;
 
         var circle = new Circle { Radius = 5 };
-        Assert.Equal(1, count);
+        count.Should().Be(1);
 
         circle.Center = new Point(5, 5);
-        Assert.Equal(2, count);
+        count.Should().Be(2);
 
         m.Batch(() => new Circle { Radius = 5, Center = new Point(5, 5) });
-        Assert.Equal(3, count);
+        count.Should().Be(3);
 
         await m.Undo();
-        Assert.Equal(4, count);
+        count.Should().Be(4);
 
         await m.Redo();
-        Assert.Equal(5, count);
+        count.Should().Be(5);
 
         m.IsTrackingEnabled = false;
         new Circle { Radius = 5 };
-        Assert.Equal(5, count);
+        count.Should().Be(5);
         m.IsTrackingEnabled = true;
 
         m.ExecuteNoTrack(() => new Circle { Radius = 5, Center = new Point() });
-        Assert.Equal(5, count);
+        count.Should().Be(5);
 
         m.Reset();
-        Assert.Equal(6, count);
+        count.Should().Be(6);
     }
 
     [Fact]
@@ -438,8 +441,8 @@ public class Features : IDisposable
         new Circle { Radius = 10 };
         m.Changed += (_, args) =>
         {
-            Assert.Equal(typeof(PropertyChangeEvent), args.Event?.GetType());
-            Assert.Equal(0, ((PropertyChangeEvent)args.Event!).PropertyValue);
+            args.Event.Should().BeOfType<PropertyChangeEvent>();
+            ((PropertyChangeEvent)args.Event!).PropertyValue.Should().Be(0);
         };
         await m.Undo();
     }
@@ -453,14 +456,14 @@ public class Features : IDisposable
         int count = 0;
         m.Changed += (_, args) =>
         {
-            Assert.Equal(typeof(ElementAdditionEvent<Circle>), args.Event?.GetType());
-            Assert.Same(screen.Shapes, ((ElementAdditionEvent<Circle>)args.Event!).Collection);
-            Assert.Same(circle, ((ElementAdditionEvent<Circle>)args.Event).Element);
+            args.Event.Should().BeOfType<ElementAdditionEvent<Circle>>();
+            ((ElementAdditionEvent<Circle>)args.Event!).Collection.Should().BeSameAs(screen.Shapes);
+            ((ElementAdditionEvent<Circle>)args.Event).Element.Should().Be(circle);
             count++;
         };
         screen.Add(circle);
         await m.Undo();
-        Assert.Equal(2, count);
+        count.Should().Be(2);
     }
 
     [Fact]
@@ -473,15 +476,16 @@ public class Features : IDisposable
         int count = 0;
         m.Changed += (_, args) =>
         {
-            Assert.Equal(typeof(ElementRemovalEvent<Circle>), args.Event?.GetType());
-            Assert.Same(screen.Shapes, ((ElementRemovalEvent<Circle>)args.Event!).Collection);
-            Assert.Same(circle, ((ElementRemovalEvent<Circle>)args.Event).Element);
-            Assert.Equal(0, ((ElementRemovalEvent<Circle>)args.Event).Index);
+            args.Event.Should().BeOfType<ElementRemovalEvent<Circle>>();
+            var removalEvent = (ElementRemovalEvent<Circle>)args.Event!;
+            removalEvent.Collection.Should().BeSameAs(screen.Shapes);
+            removalEvent.Element.Should().BeSameAs(circle);
+            removalEvent.Index.Should().Be(0);
             count++;
         };
         screen.Remove(circle);
         await m.Undo();
-        Assert.Equal(2, count);
+        count.Should().Be(2);
     }
 
     [Fact]
@@ -495,15 +499,16 @@ public class Features : IDisposable
         int count = 0;
         m.Changed += (_, args) =>
         {
-            Assert.Equal(typeof(ElementIndexChangeEvent<Circle>), args.Event?.GetType());
-            Assert.Same(screen.Shapes, ((ElementIndexChangeEvent<Circle>)args.Event!).Collection);
-            Assert.Same(circle, ((ElementIndexChangeEvent<Circle>)args.Event).Element);
-            Assert.Equal(1, ((ElementIndexChangeEvent<Circle>)args.Event).Index);
+            args.Event.Should().BeOfType<ElementIndexChangeEvent<Circle>>();
+            var indexChangeEvent = (ElementIndexChangeEvent<Circle>)args.Event!;
+            indexChangeEvent.Collection.Should().BeSameAs(screen.Shapes);
+            indexChangeEvent.Element.Should().BeSameAs(circle);
+            indexChangeEvent.Index.Should().Be(1);
             count++;
         };
         screen.MoveToFront(1);
         await m.Undo();
-        Assert.Equal(2, count);
+        count.Should().Be(2);
     }
 
     [Fact]
@@ -512,16 +517,17 @@ public class Features : IDisposable
         int count = 0;
         m.Changed += (_, args) =>
         {
-            Assert.Equal(typeof(BatchEvent), args.Event?.GetType());
-            Assert.Equal(2, ((BatchEvent)args.Event!).Count);
-            var events = ((BatchEvent)args.Event).ToArray();
-            Assert.Equal(typeof(PropertyChangeEvent), events[0].GetType());
-            Assert.Equal(typeof(PropertyChangeEvent), events[1].GetType());
+            args.Event.Should().BeOfType<BatchEvent>();
+            var batchEvent = (BatchEvent)args.Event!;
+            batchEvent.Count.Should().Be(2);
+            var events = batchEvent.ToArray();
+            events[0].Should().BeOfType<PropertyChangeEvent>();
+            events[1].Should().BeOfType<PropertyChangeEvent>();
             count++;
         };
         m.Batch(() => new Circle { Center = new Point(5, 5), Radius = 5 });
         await m.Undo();
-        Assert.Equal(2, count);
+        count.Should().Be(2);
     }
 
     [Fact]
@@ -533,9 +539,9 @@ public class Features : IDisposable
         UndoCount(1);
 
         await m.Undo();
-        Assert.True(@event.IsRolledback);
+        @event.IsRolledback.Should().BeTrue();
 
-        m.Changed += (_, args) => Assert.Same(reverseEvent, args.Event);
+        m.Changed += (_, args) => args.Event.Should().BeSameAs(reverseEvent);
         await m.Redo();
     }
 
@@ -554,20 +560,14 @@ public class Features : IDisposable
         };
         m.Changed += changed;
         await m.Undo();
-        Assert.NotNull(batchEvent);
+        batchEvent.Should().NotBeNull();
 
         m.Changed -= changed;
-        var customEvent = new InvalidCustomEvent(batchEvent);
+        var customEvent = new InvalidCustomEvent(batchEvent!);
         m.MarkEvent(customEvent);
 
-        try
-        {
-            await m.Undo();
-            Assert.Fail("Expected InvalidOperationException");
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        Func<Task> undoAction = async () => await m.Undo();
+        await undoAction.Should().ThrowExactlyAsync<InvalidOperationException>();
 
         m.Reset();
         m.Batch(() =>
@@ -575,29 +575,22 @@ public class Features : IDisposable
             m.MarkEvent(customEvent);
             m.MarkEvent(customEvent);
         });
-        try
-        {
-            await m.Undo();
-            Assert.Fail("Expected InvalidOperationException");
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        await undoAction.Should().ThrowExactlyAsync<InvalidOperationException>();
     }
 
     #region Helper
 
     private Features UndoCount(int c)
     {
-        Assert.Equal(c, m.UndoCount);
-        Assert.Equal(c > 0, m.CanUndo);
+        m.UndoCount.Should().Be(c);
+        m.CanUndo.Should().Be(c > 0);
         return this;
     }
 
     private Features RedoCount(int c)
     {
-        Assert.Equal(c, m.RedoCount);
-        Assert.Equal(c > 0, m.CanRedo);
+        m.RedoCount.Should().Be(c);
+        m.CanRedo.Should().Be(c > 0);
         return this;
     }
 
