@@ -19,6 +19,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{CC9D1839-E25F-45CD-8733-E902A1946F5D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{F6A18B14-7FF3-46C6-AD32-DFB48338CFFB}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build.yaml = .github\workflows\build.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +47,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{10E2CC60-6E55-48D5-B9DD-E76155AFAF8E} = {9153D45B-88C3-4843-A8DA-99CC0B027C18}
 		{BA565C06-84BD-4A2E-9B52-F679FD65AB8B} = {8AFC5D43-686B-4A64-BD3C-4B8942E44E09}
+		{F6A18B14-7FF3-46C6-AD32-DFB48338CFFB} = {CC9D1839-E25F-45CD-8733-E902A1946F5D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3F9EFD45-DF2A-4826-A239-961842336BF0}
