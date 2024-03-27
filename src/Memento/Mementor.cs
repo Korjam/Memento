@@ -91,6 +91,40 @@ public sealed class Mementor : IDisposable
     /// <param name="codeBlock">The code block performing batch change marking.</param>
     /// <seealso cref="BeginBatch"/>
     /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
+    public T Batch<T>(Func<T> codeBlock)
+    {
+        if (codeBlock == null)
+        {
+            throw new ArgumentNullException(nameof(codeBlock));
+        }
+        if (!IsTrackingEnabled)
+        {
+            return codeBlock();
+        }
+
+        BeginBatch();
+
+        try
+        {
+            return codeBlock();
+        }
+        finally
+        {
+            // Must not call EndBatch() because CheckPreconditions() might return false
+            var @event = InternalEndBatch(_undoStack);
+            if (@event != null)
+            {
+                PerformPostMarkAction(@event);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks a batch during which all events are combined so that <see cref="Undo"/> only needs calling once.
+    /// </summary>
+    /// <param name="codeBlock">The code block performing batch change marking.</param>
+    /// <seealso cref="BeginBatch"/>
+    /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
     public async Task BatchAsync(Func<Task> codeBlock)
     {
         if (codeBlock == null)
@@ -108,6 +142,40 @@ public sealed class Mementor : IDisposable
         try
         {
             await codeBlock();
+        }
+        finally
+        {
+            // Must not call EndBatch() because CheckPreconditions() might return false
+            var @event = InternalEndBatch(_undoStack);
+            if (@event != null)
+            {
+                PerformPostMarkAction(@event);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks a batch during which all events are combined so that <see cref="Undo"/> only needs calling once.
+    /// </summary>
+    /// <param name="codeBlock">The code block performing batch change marking.</param>
+    /// <seealso cref="BeginBatch"/>
+    /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
+    public async Task<T> BatchAsync<T>(Func<Task<T>> codeBlock)
+    {
+        if (codeBlock == null)
+        {
+            throw new ArgumentNullException(nameof(codeBlock));
+        }
+        if (!IsTrackingEnabled)
+        {
+            return await codeBlock();
+        }
+
+        BeginBatch();
+
+        try
+        {
+            return await codeBlock();
         }
         finally
         {
