@@ -84,6 +84,39 @@ public sealed class Mementor : IDisposable
     }
 
     /// <summary>
+    /// Marks a batch during which all events are combined so that <see cref="Undo"/> only needs calling once.
+    /// </summary>
+    /// <param name="codeBlock">The code block performing batch change marking.</param>
+    /// <seealso cref="BeginBatch"/>
+    /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
+    public async Task BatchAsync(Func<Task> codeBlock)
+    {
+        if (!IsTrackingEnabled)
+        {
+            return;
+        }
+        if (codeBlock == null)
+        {
+            throw new ArgumentNullException(nameof(codeBlock));
+        }
+
+        BeginBatch();
+        try
+        {
+            await codeBlock();
+        }
+        finally
+        {
+            // Must not call EndBatch() because CheckPreconditions() might return false
+            var @event = InternalEndBatch(_undoStack);
+            if (@event != null)
+            {
+                PerformPostMarkAction(@event);
+            }
+        }
+    }
+
+    /// <summary>
     /// Explicitly marks the beginning of a batch. Use this instead of <see cref="Batch"/>
     /// changes can be made in different places instead of inside one certain block of code.
     /// When finish, end the batch by invoking <see cref="EndBatch"/>.
@@ -143,9 +176,28 @@ public sealed class Mementor : IDisposable
     }
 
     /// <summary>
+    /// Executes the supplied code block with <see cref="IsTrackingEnabled"/> turned off.
+    /// </summary>
+    /// <param name="codeBlock">The code block to be executed.</param>
+    /// <seealso cref="IsTrackingEnabled"/>
+    public async Task ExecuteNoTrackAsync(Func<Task> codeBlock)
+    {
+        var previousState = IsTrackingEnabled;
+        IsTrackingEnabled = false;
+        try
+        {
+            await codeBlock();
+        }
+        finally
+        {
+            IsTrackingEnabled = previousState;
+        }
+    }
+
+    /// <summary>
     /// Performs an undo.
     /// </summary>
-    public void Undo()
+    public async Task Undo()
     {
         if (!CanUndo)
         {
@@ -157,7 +209,7 @@ public sealed class Mementor : IDisposable
         }
 
         var @event = _undoStack.Pop();
-        RollbackEvent(@event switch
+        await RollbackEvent(@event switch
         {
             BatchEvent batch => new BatchEvent(batch),
             _ => @event,
@@ -168,7 +220,7 @@ public sealed class Mementor : IDisposable
     /// <summary>
     /// Performs a redo.
     /// </summary>
-    public void Redo()
+    public async Task Redo()
     {
         if (!CanRedo)
         {
@@ -180,7 +232,7 @@ public sealed class Mementor : IDisposable
         }
 
         var @event = _redoStack.Pop();
-        RollbackEvent(@event switch
+        await RollbackEvent(@event switch
         {
             BatchEvent batch => new BatchEvent(batch),
             _ => @event,
@@ -264,11 +316,11 @@ public sealed class Mementor : IDisposable
 
     #region Private
 
-    private void RollbackEvent(BaseEvent @event, bool undoing)
+    private async Task RollbackEvent(BaseEvent @event, bool undoing)
     {
-        ExecuteNoTrack(() =>
+        await ExecuteNoTrackAsync(async () =>
         {
-            var reverse = @event.Rollback();
+            var reverse = await @event.Rollback();
             if (reverse == null)
             {
                 return;

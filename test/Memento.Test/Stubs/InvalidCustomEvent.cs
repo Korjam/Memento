@@ -4,15 +4,15 @@ namespace Memento.Test.Stubs;
 
 internal class InvalidCustomEvent : BaseEvent
 {
-    public BatchEvent Batch { get; set; }
+    public BatchEvent Batch { get; }
 
     public InvalidCustomEvent(BatchEvent batch)
     {
         Batch = batch;
     }
 
-    protected override BaseEvent Rollback()
+    protected override Task<BaseEvent> Rollback()
     {
-        return Batch;
+        return Task.FromResult<BaseEvent>(Batch);
     }
 }

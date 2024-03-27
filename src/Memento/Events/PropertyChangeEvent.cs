@@ -35,11 +35,11 @@ public sealed class PropertyChangeEvent : BaseEvent
         PropertyValue = propertyValue ?? PropertyInfo().GetValue(target, null);
     }
 
-    protected internal override BaseEvent Rollback()
+    protected internal override Task<BaseEvent> Rollback()
     {
         var reverse = new PropertyChangeEvent(TargetObject, PropertyName);
         PropertyInfo().SetValue(TargetObject, PropertyValue, null);
-        return reverse;
+        return Task.FromResult<BaseEvent>(reverse);
     }
 
     private PropertyInfo PropertyInfo()

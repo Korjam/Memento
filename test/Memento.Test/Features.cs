@@ -25,7 +25,7 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_undo_redo_property_change()
+    public async Task Should_undo_redo_property_change()
     {
         var c = new Circle();
         for (int i = 0; i < 10; i++)
@@ -35,30 +35,30 @@ public class Features : IDisposable
         }
         for (int i = 9; i >= 0; i--)
         {
-            m.Undo();
+            await m.Undo();
             Assert.Equal(i, c.Radius);
             UndoCount(i).RedoCount(9 - i + 1);
         }
         for (int i = 0; i < 10; i++)
         {
-            m.Redo();
+            await m.Redo();
             Assert.Equal(i + 1, c.Radius);
             UndoCount(i + 1).RedoCount(9 - i);
         }
     }
 
     [Fact]
-    public void Should_allow_provide_property_value()
+    public async Task Should_allow_provide_property_value()
     {
         var c = new Circle();
         UndoCount(0);
         m.PropertyChange(c, () => c.Radius, 10);
-        m.Undo();
+        await m.Undo();
         Assert.Equal(10, c.Radius);
     }
 
     [Fact]
-    public void Should_undo_redo_complex_property_change()
+    public async Task Should_undo_redo_complex_property_change()
     {
         var c = new Circle();
         for (int i = 0; i < 10; i++)
@@ -68,29 +68,29 @@ public class Features : IDisposable
         }
         for (int i = 9; i >= 0; i--)
         {
-            m.Undo();
+            await m.Undo();
             Assert.Equal(new Point(i, i), c.Center);
             UndoCount(i).RedoCount(9 - i + 1);
         }
         for (int i = 0; i < 10; i++)
         {
-            m.Redo();
+            await m.Redo();
             Assert.Equal(new Point(i + 1, i + 1), c.Center);
             UndoCount(i + 1).RedoCount(9 - i);
         }
     }
 
     [Fact]
-    public void Should_undo_multiple_properties_change()
+    public async Task Should_undo_multiple_properties_change()
     {
         var c = new Circle { Radius = 10, Center = new Point(10, 10) };
         UndoCount(2);
 
-        m.Undo();
+        await m.Undo();
         Assert.Equal(new Point(0, 0), c.Center);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.Equal(0, c.Radius);
         UndoCount(0);
     }
@@ -106,12 +106,12 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_clear_redo_after_a_forward_change()
+    public async Task Should_clear_redo_after_a_forward_change()
     {
         var c = new Circle { Radius = 10 };
         UndoCount(1).RedoCount(0);
 
-        m.Undo();
+        await m.Undo();
         UndoCount(0).RedoCount(1);
 
         c.Radius++;
@@ -119,30 +119,30 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_be_able_to_piggy_back_undo_redo()
+    public async Task Should_be_able_to_piggy_back_undo_redo()
     {
         var c = new Circle { Radius = 10 };
         UndoCount(1).RedoCount(0);
 
-        m.Undo();
+        await m.Undo();
         Assert.Equal(0, c.Radius);
         UndoCount(0).RedoCount(1);
 
-        m.Redo();
+        await m.Redo();
         Assert.Equal(10, c.Radius);
         UndoCount(1).RedoCount(0);
 
-        m.Undo();
+        await m.Undo();
         Assert.Equal(0, c.Radius);
         UndoCount(0).RedoCount(1);
 
-        m.Redo();
+        await m.Redo();
         Assert.Equal(10, c.Radius);
         UndoCount(1).RedoCount(0);
     }
 
     [Fact]
-    public void Should_undo_redo_whole_batch()
+    public async Task Should_undo_redo_whole_batch()
     {
         var circles = new Circle[10];
         for (int i = 0; i < circles.Length; i++)
@@ -160,7 +160,7 @@ public class Features : IDisposable
         });
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         foreach (Circle circle in circles)
         {
             Assert.Equal(0, circle.Radius);
@@ -168,7 +168,7 @@ public class Features : IDisposable
         }
         RedoCount(1);
 
-        m.Redo();
+        await m.Redo();
         foreach (Circle circle in circles)
         {
             Assert.Equal(5, circle.Radius);
@@ -281,22 +281,22 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_undo_redo_collection_addition()
+    public async Task Should_undo_redo_collection_addition()
     {
         var screen = new Screen();
         var circle = new Circle();
         screen.Add(circle);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.Empty(screen.Shapes);
 
-        m.Redo();
+        await m.Redo();
         Assert.Same(circle, screen.Shapes[0]);
     }
 
     [Fact]
-    public void Should_undo_redo_collection_removal()
+    public async Task Should_undo_redo_collection_removal()
     {
         var screen = new Screen();
         var circle = new Circle();
@@ -306,15 +306,15 @@ public class Features : IDisposable
         screen.Remove(circle);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.Same(circle, screen.Shapes[0]);
 
-        m.Redo();
+        await m.Redo();
         Assert.Empty(screen.Shapes);
     }
 
     [Fact]
-    public void Should_undo_redo_collection_position_change()
+    public async Task Should_undo_redo_collection_position_change()
     {
         var screen = new Screen();
         Circle circle1, circle2;
@@ -326,11 +326,11 @@ public class Features : IDisposable
         Assert.Same(circle2, screen.Shapes[0]);
         Assert.Same(circle1, screen.Shapes[1]);
 
-        m.Undo();
+        await m.Undo();
         Assert.Same(circle1, screen.Shapes[0]);
         Assert.Same(circle2, screen.Shapes[1]);
 
-        m.Redo();
+        await m.Redo();
         Assert.Same(circle2, screen.Shapes[0]);
         Assert.Same(circle1, screen.Shapes[1]);
     }
@@ -357,7 +357,7 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_undo_redo_collection_changes_in_batch()
+    public async Task Should_undo_redo_collection_changes_in_batch()
     {
         var screen = new Screen();
         m.Batch(() =>
@@ -371,12 +371,12 @@ public class Features : IDisposable
         Assert.Single(screen.Shapes);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.Empty(screen.Shapes);
     }
 
     [Fact]
-    public void Should_undo_redo_collection_changes_in_explicit_batch()
+    public async Task Should_undo_redo_collection_changes_in_explicit_batch()
     {
         var screen = new Screen();
         m.BeginBatch();
@@ -395,12 +395,12 @@ public class Features : IDisposable
         Assert.Single(screen.Shapes);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.Empty(screen.Shapes);
     }
 
     [Fact]
-    public void Should_fire_events()
+    public async Task Should_fire_events()
     {
         int count = 0;
         m.Changed += (_, args) => count++;
@@ -414,10 +414,10 @@ public class Features : IDisposable
         m.Batch(() => new Circle { Radius = 5, Center = new Point(5, 5) });
         Assert.Equal(3, count);
 
-        m.Undo();
+        await m.Undo();
         Assert.Equal(4, count);
 
-        m.Redo();
+        await m.Redo();
         Assert.Equal(5, count);
 
         m.IsTrackingEnabled = false;
@@ -433,7 +433,7 @@ public class Features : IDisposable
     }
 
     [Fact]
-    public void Should_fire_property_change_event()
+    public async Task Should_fire_property_change_event()
     {
         new Circle { Radius = 10 };
         m.Changed += (_, args) =>
@@ -441,11 +441,11 @@ public class Features : IDisposable
             Assert.Equal(typeof(PropertyChangeEvent), args.Event?.GetType());
             Assert.Equal(0, ((PropertyChangeEvent)args.Event!).PropertyValue);
         };
-        m.Undo();
+        await m.Undo();
     }
 
     [Fact]
-    public void Should_fire_collection_addition_event()
+    public async Task Should_fire_collection_addition_event()
     {
         var screen = new Screen();
         var circle = new Circle();
@@ -459,12 +459,12 @@ public class Features : IDisposable
             count++;
         };
         screen.Add(circle);
-        m.Undo();
+        await m.Undo();
         Assert.Equal(2, count);
     }
 
     [Fact]
-    public void Should_fire_collection_removal_event()
+    public async Task Should_fire_collection_removal_event()
     {
         var screen = new Screen();
         var circle = new Circle();
@@ -480,12 +480,12 @@ public class Features : IDisposable
             count++;
         };
         screen.Remove(circle);
-        m.Undo();
+        await m.Undo();
         Assert.Equal(2, count);
     }
 
     [Fact]
-    public void Should_fire_collection_element_position_change_event()
+    public async Task Should_fire_collection_element_position_change_event()
     {
         var screen = new Screen();
         var circle = new Circle();
@@ -502,12 +502,12 @@ public class Features : IDisposable
             count++;
         };
         screen.MoveToFront(1);
-        m.Undo();
+        await m.Undo();
         Assert.Equal(2, count);
     }
 
     [Fact]
-    public void Should_fire_batch_event()
+    public async Task Should_fire_batch_event()
     {
         int count = 0;
         m.Changed += (_, args) =>
@@ -520,27 +520,27 @@ public class Features : IDisposable
             count++;
         };
         m.Batch(() => new Circle { Center = new Point(5, 5), Radius = 5 });
-        m.Undo();
+        await m.Undo();
         Assert.Equal(2, count);
     }
 
     [Fact]
-    public void Should_handle_custom_event()
+    public async Task Should_handle_custom_event()
     {
         var reverseEvent = new CustomEvent();
         var @event = new CustomEvent(reverseEvent);
         m.MarkEvent(@event);
         UndoCount(1);
 
-        m.Undo();
+        await m.Undo();
         Assert.True(@event.IsRolledback);
 
         m.Changed += (_, args) => Assert.Same(reverseEvent, args.Event);
-        m.Redo();
+        await m.Redo();
     }
 
     [Fact]
-    public void Should_throw_if_invalid_rollback_return_type()
+    public async Task Should_throw_if_invalid_rollback_return_type()
     {
         m.Batch(() =>
         {
@@ -553,7 +553,7 @@ public class Features : IDisposable
             batchEvent = (BatchEvent?)args.Event;
         };
         m.Changed += changed;
-        m.Undo();
+        await m.Undo();
         Assert.NotNull(batchEvent);
 
         m.Changed -= changed;
@@ -562,7 +562,7 @@ public class Features : IDisposable
 
         try
         {
-            m.Undo();
+            await m.Undo();
             Assert.Fail("Expected InvalidOperationException");
         }
         catch (InvalidOperationException)
@@ -577,7 +577,7 @@ public class Features : IDisposable
         });
         try
         {
-            m.Undo();
+            await m.Undo();
             Assert.Fail("Expected InvalidOperationException");
         }
         catch (InvalidOperationException)

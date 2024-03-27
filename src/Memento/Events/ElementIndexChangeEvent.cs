@@ -39,11 +39,11 @@ public sealed class ElementIndexChangeEvent<T> : BaseEvent
         Index = index.Value;
     }
 
-    protected internal override BaseEvent Rollback()
+    protected internal override Task<BaseEvent> Rollback()
     {
         var reverse = new ElementIndexChangeEvent<T>(Collection, Element);
         Collection.Remove(Element);
         Collection.Insert(Index, Element);
-        return reverse;
+        return Task.FromResult<BaseEvent>(reverse);
     }
 }

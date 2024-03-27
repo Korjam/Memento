@@ -12,10 +12,10 @@ internal class CustomEvent : BaseEvent
         ReverseEvent = reverseEvent;
     }
 
-    protected override BaseEvent Rollback()
+    protected override Task<BaseEvent> Rollback()
     {
         IsRolledback = true;
         ReverseEvent ??= new CustomEvent(this);
-        return ReverseEvent;
+        return Task.FromResult<BaseEvent>(ReverseEvent);
     }
 }
