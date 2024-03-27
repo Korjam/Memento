@@ -197,7 +197,7 @@ public sealed class Mementor : IDisposable
     /// <summary>
     /// Performs an undo.
     /// </summary>
-    public async Task Undo()
+    public async Task Undo(CancellationToken cancellationToken = default)
     {
         if (!CanUndo)
         {
@@ -213,14 +213,14 @@ public sealed class Mementor : IDisposable
         {
             BatchEvent batch => new BatchEvent(batch),
             _ => @event,
-        }, true);
+        }, true, cancellationToken);
         NotifyChange(@event);
     }
 
     /// <summary>
     /// Performs a redo.
     /// </summary>
-    public async Task Redo()
+    public async Task Redo(CancellationToken cancellationToken = default)
     {
         if (!CanRedo)
         {
@@ -236,7 +236,7 @@ public sealed class Mementor : IDisposable
         {
             BatchEvent batch => new BatchEvent(batch),
             _ => @event,
-        }, false);
+        }, false, cancellationToken);
         NotifyChange(@event);
     }
 
@@ -316,11 +316,11 @@ public sealed class Mementor : IDisposable
 
     #region Private
 
-    private async Task RollbackEvent(BaseEvent @event, bool undoing)
+    private async Task RollbackEvent(BaseEvent @event, bool undoing, CancellationToken cancellationToken)
     {
         await ExecuteNoTrackAsync(async () =>
         {
-            var reverse = await @event.Rollback();
+            var reverse = await @event.Rollback(cancellationToken);
             if (reverse == null)
             {
                 return;

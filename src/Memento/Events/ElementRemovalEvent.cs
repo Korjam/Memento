@@ -39,7 +39,7 @@ public sealed class ElementRemovalEvent<T> : BaseEvent
         Index = index.Value;
     }
 
-    protected internal override Task<BaseEvent> Rollback()
+    protected internal override Task<BaseEvent> Rollback(CancellationToken cancellationToken)
     {
         var reverse = new ElementAdditionEvent<T>(Collection, Element);
         Collection.Insert(Index, Element);

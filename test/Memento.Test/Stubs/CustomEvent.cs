@@ -12,7 +12,7 @@ internal class CustomEvent : BaseEvent
         ReverseEvent = reverseEvent;
     }
 
-    protected override Task<BaseEvent> Rollback()
+    protected override Task<BaseEvent> Rollback(CancellationToken cancellationToken)
     {
         IsRolledback = true;
         ReverseEvent ??= new CustomEvent(this);

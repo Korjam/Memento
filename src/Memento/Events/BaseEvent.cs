@@ -13,5 +13,5 @@ public abstract class BaseEvent
     /// This method must now, however, return an isntance of <see cref="BatchEvent"/>.</para>
     /// </summary>
     /// <returns>A symmetric reverse event for this rollback action.</returns>
-    protected internal abstract Task<BaseEvent> Rollback();
+    protected internal abstract Task<BaseEvent> Rollback(CancellationToken cancellationToken);
 }

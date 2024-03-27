@@ -27,13 +27,13 @@ public sealed class BatchEvent : BaseEvent, IEnumerable<BaseEvent>
 
     internal void Clear() => _events.Clear();
 
-    protected internal override async Task<BaseEvent> Rollback()
+    protected internal override async Task<BaseEvent> Rollback(CancellationToken cancellationToken)
     {
         var batch = new BatchEvent();
 
         while (Count > 0)
         {
-            var reverse = await Pop().Rollback();
+            var reverse = await Pop().Rollback(cancellationToken);
             if (reverse == null)
             {
                 continue;

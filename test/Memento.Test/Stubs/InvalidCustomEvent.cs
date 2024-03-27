@@ -11,7 +11,7 @@ internal class InvalidCustomEvent : BaseEvent
         Batch = batch;
     }
 
-    protected override Task<BaseEvent> Rollback()
+    protected override Task<BaseEvent> Rollback(CancellationToken cancellationToken)
     {
         return Task.FromResult<BaseEvent>(Batch);
     }
