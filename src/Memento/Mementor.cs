@@ -58,16 +58,18 @@ public sealed class Mementor : IDisposable
     /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
     public void Batch(Action codeBlock)
     {
-        if (!IsTrackingEnabled)
-        {
-            return;
-        }
         if (codeBlock == null)
         {
             throw new ArgumentNullException(nameof(codeBlock));
         }
+        if (!IsTrackingEnabled)
+        {
+            codeBlock();
+            return;
+        }
 
         BeginBatch();
+
         try
         {
             codeBlock();
@@ -91,16 +93,18 @@ public sealed class Mementor : IDisposable
     /// <remarks>Batches cannot be nested. At any point, there must be only one active batch.</remarks>
     public async Task BatchAsync(Func<Task> codeBlock)
     {
-        if (!IsTrackingEnabled)
-        {
-            return;
-        }
         if (codeBlock == null)
         {
             throw new ArgumentNullException(nameof(codeBlock));
         }
+        if (!IsTrackingEnabled)
+        {
+            await codeBlock();
+            return;
+        }
 
         BeginBatch();
+
         try
         {
             await codeBlock();
